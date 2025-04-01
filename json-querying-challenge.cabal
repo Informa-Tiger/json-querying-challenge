@@ -68,7 +68,16 @@ executable json-querying-challenge
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:    base ^>=4.17.2.1
+    build-depends:
+        base ^>=4.17.2.1,
+        attoparsec ^>=0.14.4,
+        text,
+        ghc,
+        scientific,
+        aeson,
+        containers,
+        primitive,
+        utf8-string
 
     -- Directories containing source files.
     hs-source-dirs:   app
