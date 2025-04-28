@@ -1,0 +1,41 @@
+cabal-version:      3.4
+name:               json-querying-challenge
+version:            0.1.0.0
+category:           Data
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+
+common warnings
+    ghc-options: -Wall
+
+library
+    hs-source-dirs: src, app
+    exposed-modules:
+        QueryJSON
+    build-depends:
+        base,
+        attoparsec,
+        text,
+        ghc,
+        scientific,
+        aeson,
+        containers
+
+executable json-querying-challenge
+    import:           warnings
+    main-is:          Main.hs
+    build-depends:
+        base,
+        json-querying-challenge,
+        scotty,
+        aeson,
+        wai-extra,
+        text,
+        http-types,
+        sqlite-simple,
+        wai-cors,
+        time,
+        bytestring,
+        mtl
+    hs-source-dirs:   app
+    default-language: GHC2021
