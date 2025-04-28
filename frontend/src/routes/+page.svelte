@@ -9,10 +9,15 @@
         Spinner,
         Card,
     } from "@sveltestrap/sveltestrap";
-    import { onMount } from 'svelte';
+    import { onMount } from "svelte";
+
+    type Result = {
+        columns: string[];
+        rows: any[][];
+    };
 
     let querystr = $state("");
-    let query: Promise<any[][]> | undefined = $state();
+    let query: Promise<Result> | undefined = $state();
     let history: any[] = $state([]);
     let selectedId: number | null = $state(null);
     let selected = $derived(history.find((q) => q.id === selectedId));
@@ -24,7 +29,7 @@
                 fetchHistory();
                 return new Promise(function (resolve, reject) {
                     if (!response.ok)
-                        response.text().then(reject).catch(reject);
+                        response.text().then(err => err.trim() == "" ? reject(response.statusText) : reject(err)).catch(reject);
                     else return response.json().then(resolve).catch(reject);
                 });
             },
@@ -40,22 +45,33 @@
     onMount(fetchHistory);
 </script>
 
-{#snippet resultTable(result: any[][])}
-    <Table>
-        <tbody>
-            {#if result.length > 0}
-                {#each result as row}
-                    <tr>
-                        {#each row as column}
-                            <td>{column}</td>
-                        {/each}
-                    </tr>
-                {/each}
-            {:else}
-                <Card body>empty result set</Card>
-            {/if}
-        </tbody>
-    </Table>
+{#snippet resultTable(result: Result)}
+    <div class="table-responsive" style="height: unset;">
+        <Table>
+            <thead style="position: sticky; top: 0">
+                <tr>
+                    {#each result.columns as column}
+                        <th>{column}</th>
+                    {/each}
+                </tr>
+            </thead>
+            <tbody>
+                {#if result.rows.length > 0}
+                    {#each result.rows as row}
+                        <tr>
+                            {#each row as column}
+                                <td>{column}</td>
+                            {/each}
+                        </tr>
+                    {/each}
+                {/if}
+            </tbody>
+        </Table>
+    </div>
+
+    {#if result.rows.length == 0}
+        <Card body>empty result set</Card>
+    {/if}
 {/snippet}
 
 <div class="container">
@@ -75,8 +91,8 @@
         </div>
     </div>
 
-    <div class="row" style="overflow: hidden; flex: 1;">
-        <div class="col">
+    <div class="row" style="flex: 1; overflow: hidden;">
+        <div class="col" style="width: 50%;">
             <div class="table-responsive">
                 <Table>
                     <thead style="position: sticky; top: 0;">
@@ -113,8 +129,7 @@
                 </Table>
             </div>
         </div>
-
-        <div class="col">
+        <div class="col" style="display: flex; flex-direction:column; width: 50%;">
             <h3>Result</h3>
             {#if selectedId !== null}
                 {#if selected.success}
@@ -155,5 +170,9 @@
         overflow: hidden;
         display: flex;
         flex-direction: column;
+    }
+
+    :global(.card) {
+        flex: 0;
     }
 </style>

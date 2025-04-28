@@ -79,7 +79,8 @@ app = do
               saveInDB False err
               S.status status400 
               S.text (pack err)
-            Right result -> do
+            Right rows -> do
+              let result = A.object["columns" .= Q.getColumnNames table query, "rows" .= rows]
               saveInDB True (decodeUtf8 (A.encode result))
               S.json result
 

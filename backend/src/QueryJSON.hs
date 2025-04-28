@@ -32,12 +32,12 @@ data Query = Query {
 
 type Table = [M.Map String A.Value]
 
-data Selectable = Asterisk | Expr Expression deriving Show
+data Selectable = Asterisk | Expr (Text, Expression) deriving Show
 
 sqlParser :: Parser Query
 sqlParser = do
     keywordParser "select"
-    columns <- P.sepBy1 ((P.skipSpace *> P.char '*' $> Asterisk) <|> (Expr <$> expressionParser)) (P.skipSpace *> P.char ',') <?> "columns"
+    columns <- P.sepBy1 ((P.skipSpace *> P.char '*' $> Asterisk) <|> (Expr <$> P.match expressionParser)) (P.skipSpace *> P.char ',') <?> "columns"
     keywordParser "from"
     keywordParser "table"
     hasWhereClause <- P.option False (keywordParser "where" $> True)
@@ -86,7 +86,8 @@ data Expression = Col Text | Str Text | Num Scientific | BinOp BinaryOperator Ex
 -- For order of precedence see https://www.sqlite.org/lang_expr.html#operators_and_parse_affecting_attributes
 expressionParser :: Parser Expression
 expressionParser = do
-    binaryOperationParser   ((keywordParser "or" $> BinOp Or) <|> (keywordParser "and" $> BinOp And))
+    binaryOperationParser   (keywordParser "or" $> BinOp Or)
+    $ binaryOperationParser (keywordParser "and" $> BinOp And)
     $ binaryOperationParser ((P.char '=' $> BinOp Eq) <|> (P.string "!=" $>  BinOp Neq))
     $ binaryOperationParser ((P.char '>' $> BinOp Gt) <|> (P.char '<' $> BinOp Lt))
     simpleExpressionParser
@@ -122,7 +123,7 @@ binaryOperationParser operatorParser higherPrecedence = do
 queryTable :: Table -> Query -> Either String [[A.Value]]
 queryTable table query = 
     let allColumns = map (Col . T.pack) (M.keys (head table)) in
-    let selectedColumns = columns query >>= \case {Asterisk -> allColumns; Expr expr -> [expr]} in
+    let selectedColumns = columns query >>= \case {Asterisk -> allColumns; Expr (_, expr) -> [expr]} in
     table &
     map (\row -> (Right asBool <*> evalExpression row (whereClause query), extractEither [evalExpression row col | col <- selectedColumns])) &
     mapMaybe ( \case 
@@ -134,6 +135,15 @@ queryTable table query =
         -- returns either first Left value in list or the list with Right extracted
         extractEither :: (Foldable t, MonadPlus t) => t (Either e a) -> Either e (t a)
         extractEither = foldM (\l -> (Right (mplus l . pure) <*>)) mzero
+
+getColumnNames :: Table -> Query -> [String]
+getColumnNames table query =
+    case table of 
+        [] -> []
+        firstRow: _ -> 
+            let allColumns = M.keys firstRow in
+            columns query >>= \case {Asterisk -> allColumns; Expr (name, _) -> [T.unpack name]}
+
 
 asBool :: A.Value -> Bool
 asBool (A.Bool val) = val
