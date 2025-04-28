@@ -9,6 +9,7 @@
         Spinner,
         Card,
     } from "@sveltestrap/sveltestrap";
+    import { onMount } from 'svelte';
 
     let querystr = $state("");
     let query: Promise<any[][]> | undefined = $state();
@@ -36,7 +37,7 @@
             .then((result) => (history = result));
     }
 
-    fetchHistory();
+    onMount(fetchHistory);
 </script>
 
 {#snippet resultTable(result: any[][])}
